@@ -8,15 +8,29 @@
 class Collision
 {
 public:
+	enum Pixel
+	{
+		black = 0,
+		red = 1,
+		green = 2,
+		blue = 3
+	};
+public:
+	class Rect_list
+	{
+	public:
+		Heyo::Rect rect;
+		Pixel color;
+	};
+public:
 	unsigned w;
 	unsigned h;
 	unsigned char * out;
 	std::string address;
-	std::vector<Heyo::Rect> rect_list;
-	std::vector<std::vector<bool>> grid;
+	std::vector<Rect_list> rect_list;
+	std::vector<std::vector<Pixel>> grid;
 	string write_address;
 	std::ofstream write;
-
 public:
 	Collision()
 	{
@@ -35,8 +49,8 @@ public:
 private:
 	void makeGrid();
 	void makeRectList();
-	Heyo::Rect makeRect(int x, int y);
-	bool isListed(int x, int y);
+	Heyo::Rect makeRect(int x, int y, Pixel color);
+	bool isListed(int x, int y, Pixel color);
 
 };
 
@@ -95,31 +109,39 @@ void Collision::calculate()
 void Collision::makeGrid()
 {
 	grid.resize(h);
-	for (int i = 0; i < h; i++)
+	for (unsigned int i = 0; i < h; i++)
 	{
 		grid[i].resize(w);
-		for (int j = 0; j < w; j++)
+		for (unsigned int j = 0; j < w; j++)
 		{
-			grid[i][j] = false;
+			grid[i][j] = Pixel::black;
 		}
 	}
 
-	int green_pix;
-	for (int y = 0; y < h; y++)
+	int pix;
+	for (unsigned int y = 0; y < h; y++)
 	{
-		for (int x = 0; x < w; x++)
+		for (unsigned int x = 0; x < w; x++)
 		{
-			green_pix = y * w * 3 + (x * 3) + 1;
+			pix = y * w * 3 + (x * 3); // Pixel at red
 			//std::cout << green_pix << ": " << static_cast<int>(out[green_pix]) << std::endl;
-			if (out[green_pix] == 255)
+			if (out[pix] == 255)
 			{
 
 				//std::cout << "Green:\t( " << x << " , " << y << " )   " << green_pix << std::endl;
-				grid[y][x] = true;
+				grid[y][x] = Pixel::red;
 			}
-			else
+			else if (out[pix+1] == 255)
 			{
-				//std::cout << "\t( " << x << " , " << y << " )   " << green_pix << std::endl;
+
+				//std::cout << "Green:\t( " << x << " , " << y << " )   " << green_pix << std::endl;
+				grid[y][x] = Pixel::green;
+			}
+			else if (out[pix+2] == 255)
+			{
+
+				//std::cout << "Green:\t( " << x << " , " << y << " )   " << green_pix << std::endl;
+				grid[y][x] = Pixel::blue;
 			}
 		}
 	}
@@ -128,9 +150,9 @@ void Collision::makeGrid()
 
 void Collision::display()
 {
-	for (int i = 0; i < h; i++)
+	for (unsigned int i = 0; i < h; i++)
 	{
-		for (int j = 0; j < w; j++)
+		for (unsigned int j = 0; j < w; j++)
 		{
 			std::cout << static_cast<int>(grid[i][j]) << ' ';
 		}
@@ -155,35 +177,66 @@ void Collision::output()
 	write_address = "Data\\" + write_address;
 
 	write.open(write_address);
-
+	write << "Coll:\n";
 	for (int i = 0; i < rect_list.size(); i++)
 	{
-		write << rect_list[i].x << ' ' <<
-			rect_list[i].y << ' ' <<
-			rect_list[i].w << ' ' <<
-			rect_list[i].h << '\n';
+		if (rect_list[i].color == Pixel::green)
+		{
+		write << rect_list[i].rect.x << ' ' <<
+			rect_list[i].rect.y << ' ' <<
+			rect_list[i].rect.w << ' ' <<
+			rect_list[i].rect.h << '\n';
+		}
 	}
+	write << "Spawn:\n";
+	for (int i = 0; i < rect_list.size(); i++)
+	{
+		if (rect_list[i].color == Pixel::red)
+		{
+			write << rect_list[i].rect.x << ' ' <<
+				rect_list[i].rect.y << ' ' <<
+				rect_list[i].rect.w << ' ' <<
+				rect_list[i].rect.h << '\n';
+		}
+	}
+	write << "Enc:\n";
+	for (int i = 0; i < rect_list.size(); i++)
+	{
+		if (rect_list[i].color == Pixel::blue)
+		{
+			write << rect_list[i].rect.x << ' ' <<
+				rect_list[i].rect.y << ' ' <<
+				rect_list[i].rect.w << ' ' <<
+				rect_list[i].rect.h << '\n';
+		}
+	}
+
 	write.close();
 }
 
 void Collision::makeRectList()
 {
-	//std::cout << "Making Rect_List" << std::endl;
-
 	for (int y = 0; y < grid.size(); y++)
 	{
 		for (int x = 0; x < grid[y].size(); x++)
 		{
-			if (grid[y][x] == true && isListed(x, y) == false)
+			if (grid[y][x] == Pixel::red && isListed(x, y,Pixel::red) == false)
 			{
-				rect_list.push_back(makeRect(x, y));
+				rect_list.push_back({ makeRect(x, y, Pixel::red),red });
+			}
+			if (grid[y][x] == Pixel::green && isListed(x, y, Pixel::green) == false)
+			{
+				rect_list.push_back({ makeRect(x, y, Pixel::green), Pixel::green });
+			}
+			if (grid[y][x] == Pixel::blue && isListed(x, y, Pixel::blue) == false)
+			{
+				rect_list.push_back({ makeRect(x, y, Pixel::blue),Pixel::blue });
 			}
 		}
 	}
-
 }
 
-Heyo::Rect Collision::makeRect(int x, int y)
+Heyo::Rect Collision::makeRect(int x, int y, Pixel color)
 {
 	Heyo::Rect rect;
 	rect.x = x;
@@ -196,12 +249,12 @@ Heyo::Rect Collision::makeRect(int x, int y)
 	{
 		for (int j = x; j < max_x; j++)
 		{
-			if (grid[i][j] != true && j == x)
+			if (grid[i][j] != color && j == x)
 			{
 				max_y = i;
 				break;
 			}
-			if (grid[i][j] != true)
+			if (grid[i][j] != color)
 			{
 				if (j < max_x)
 				{
@@ -214,18 +267,15 @@ Heyo::Rect Collision::makeRect(int x, int y)
 	}
 	rect.h = max_y - y;
 	rect.w = max_x - x;
-
-	//std::cout << "Rect: " << rect.x << " , " << rect.y << " , " << rect.w << " , " << rect.h << "." << std::endl;
-
 	return rect;
 }
 
-bool Collision::isListed(int x, int y)
+bool Collision::isListed(int x, int y, Pixel color)
 {
 	SDL_Point dot = { x,y };
 	for (int i = 0; i < rect_list.size(); i++)
 	{
-		if (SDL_PointInRect(&dot, &rect_list[i]))
+		if (SDL_PointInRect(&dot, &rect_list[i].rect) && rect_list[i].color == color)
 			return true;
 	}
 	return false;
