@@ -1,0 +1,3 @@
+http://lodev.org/lodepng/
+
+All credit for loadpng goes to Lode Vandevenne
