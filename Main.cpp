@@ -8,6 +8,7 @@
 class Collision
 {
 public:
+	// Hello
 	enum Pixel
 	{
 		black = 0,
